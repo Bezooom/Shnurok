@@ -7,7 +7,7 @@
 | ОС хоста | Ubuntu 24.04 LTS, ядро Linux 7.0.0-38-generic x86_64 |
 | Хост-контроллер USB | ASMedia Technology Inc. ASM1142 USB 3.1 Host Controller (`1b21:1242`) |
 | Подключение | USB-C порт хоста → Lightning-кабель Apple |
-| Целевое устройство | iPad Air 1 (Wi-Fi, `iPad4,1`, SoC Apple A7 S5L8960X, BDID 0x10, ECID `0x0F0C978C64`) |
+| Целевое устройство | iPad Air 1 (Wi-Fi, `iPad4,1`, SoC Apple A7 S5L8960X, BDID 0x10) |
 | Версия прошивки | iOS 12.5.7 (Build 16H81) |
 | Среда рантайма | Python 3.12, libusb 1.0.27 (ctypes backend) |
 
