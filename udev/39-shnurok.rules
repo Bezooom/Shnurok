@@ -1,0 +1,17 @@
+# 39-shnurok.rules — USB permissions and driver workarounds for checkm8/pongoOS
+#
+# Devices:
+#   05ac:1227 - Apple DFU mode
+#   05ac:1222 - Apple WTF mode
+#   05ac:4141 - pongoOS shell / download mode
+
+# Normal DFU / WTF access
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="1227", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="1222", MODE="0666", TAG+="uaccess"
+
+# pongoOS shell and upload mode
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="4141", MODE="0666", TAG+="uaccess"
+
+# Automatically unbind apple-mfi-fastcharge on DFU/Pongo arrival
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="1227", ACTION=="add", RUN+="/bin/sh -c 'echo -n %k > /sys/bus/usb/drivers/apple-mfi-fastcharge/unbind 2>/dev/null || true'"
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ac", ATTR{idProduct}=="4141", ACTION=="add", RUN+="/bin/sh -c 'echo -n %k > /sys/bus/usb/drivers/apple-mfi-fastcharge/unbind 2>/dev/null || true'"

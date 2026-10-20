@@ -1,0 +1,66 @@
+--- a/src/shell/usbloader.c
++++ b/src/shell/usbloader.c
+@@ -46,6 +46,27 @@
+     usbloader_is_waiting_xfer = 0;
+ }
+ 
++
++// ---- fork: control-transfer upload path (ep0 DATA OUT instead of bulk ep2) ----
++
++// ep0 DATA OUT is capped by ep0_out.default_xfer_dma_size == DMA_BUFFER_SIZE (0x1000).
++#define EP0_DATA_OUT_MAX 0x1000
++
++char ep0_upload_active;
++char ep0_status;          // DFU bStatus: 0 = OK, 8 = errManifest
++
++bool ep0_upload_chunk(const void *data, uint32_t size) {
++    if (!ep0_upload_active) return false;
++    if (loader_xfer_recv_count + size > loader_xfer_recv_size) {
++        ep0_status = 8;
++        return false;
++    }
++    uint8_t *dst = loader_xfer_recv_data + loader_xfer_recv_count;
++    memcpy(dst, data, size);
++    cache_invalidate(dst, size);   // the controller wrote this via DMA
++    loader_xfer_recv_count += size;
++    return true;
++}
+ char cmd_buf[256];
+ uint32_t cmd_len;
+ char should_wait_for_cmd_handler = 0;
+@@ -111,6 +132,19 @@
+             usb_out_transfer_dma(2, loader_xfer_recv_data, vatophys((uint64_t)loader_xfer_recv_data), loader_xfer_size, usbloader_xfer_done_cb); // should resolve the VA rather than doing this, but oh well.
+             return true;
+         }
++        if (setup->bRequest == 1 && setup->wLength > 0 &&
++                !(setup->wLength == 4 && setup->wValue == 0)) { // fork: DATA OUT chunk
++            // wValue == 0 && wLength == 4 stays the resize request; a 4-byte data
++            // chunk is distinguished by a nonzero packet index in wValue.
++            if (setup->wLength > EP0_DATA_OUT_MAX) return false;
++            if (!ep0_upload_active) {
++                ep0_upload_active = 1;
++                ep0_status = 0;
++                loader_xfer_recv_count = 0;
++            }
++            ep0_begin_data_out_stage(ep0_upload_chunk);
++            return true;
++        }
+         if (setup->bRequest == 2 && setup->wLength == 0) { // discard loaded data
+             if (!usbloader_is_waiting_xfer)
+                 loader_xfer_recv_count = 0;
+@@ -147,6 +181,15 @@
+         }
+     } else if (setup->bmRequestType == 0xA1) {
+         // IN request
++        if (setup->bRequest == 3 && setup->wLength >= 6) { // fork: DFU GETSTATUS
++            static uint8_t dfu_status[6];
++            dfu_status[0] = ep0_status;                 // bStatus
++            dfu_status[1] = 0;                          // bDetachPolicy
++            dfu_status[2] = 0x5a; dfu_status[3] = 0x04; // iDev = 0x045a
++            dfu_status[4] = 0; dfu_status[5] = 0;       // bPollTimeout = 0
++            ep0_begin_data_in_stage(dfu_status, 6, usb_read_stdout_cb);
++            return true;
++        }
+         if (setup->bRequest == 1 && (setup->wLength == 512 || setup->wLength == 0x1000)) { // request bulk upload initialization
+             int xferlen = 0;
+             char *buf = stdoutbuf_copy;
