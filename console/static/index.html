@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iZOOM</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="shell">
+  <aside class="sidebar">
+  <header class="mast">
+    <div class="mast-kicker">
+      <span class="led" id="led" title="USB"></span>
+      <span id="mode-label">нет кабеля</span>
+    </div>
+    <div class="mast-title">
+      <p class="eyebrow">Один айпад на этом кабеле</p>
+      <h1 id="device-name">…</h1>
+      <p class="sub" id="device-sub"></p>
+    </div>
+    <div class="mast-actions">
+      <button type="button" data-power="sleep">Сон</button>
+      <button type="button" data-power="restart">Перезагрузка</button>
+      <button type="button" class="hot" data-power="shutdown">Выключить</button>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Разделы">
+    <button type="button" class="tab is-on" data-view="overview">Обзор</button>
+    <button type="button" class="tab" data-view="files">Файлы</button>
+    <button type="button" class="tab" data-view="apps">Программы</button>
+    <button type="button" class="tab" data-view="log">Журнал</button>
+    <button type="button" class="tab" data-view="copies">Копии</button>
+    <button type="button" class="tab" data-view="speed">Скорость</button>
+    <button type="button" class="tab" data-view="system">Система</button>
+  </nav>
+  </aside>
+
+  <div class="stage">
+  <p id="toast" class="toast" hidden></p>
+
+  <main>
+    <section id="view-overview" class="sheet">
+      <div class="split">
+        <div>
+          <h2>Паспорт</h2>
+          <dl class="spec" id="spec"></dl>
+        </div>
+        <figure class="wall">
+          <img id="wallpaper" alt="Обои домашнего экрана">
+          <figcaption>Обои домашнего экрана</figcaption>
+          <button type="button" id="shot">Снимок экрана</button>
+        </figure>
+      </div>
+      <div class="meters">
+        <article>
+          <h3>Батарея</h3>
+          <p class="big" id="batt-pct">—</p>
+          <p class="fine" id="batt-fine"></p>
+          <div class="bar"><span id="batt-bar"></span></div>
+        </article>
+        <article>
+          <h3>Память</h3>
+          <p class="big" id="disk-free">—</p>
+          <p class="fine" id="disk-fine"></p>
+          <div class="bar"><span id="disk-bar"></span></div>
+        </article>
+        <article>
+          <h3>Элемент</h3>
+          <p class="big" id="cell-health">—</p>
+          <p class="fine" id="cell-fine"></p>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-files" class="sheet" hidden>
+      <div class="toolbar">
+        <label>Область
+          <select id="fs-scope">
+            <option value="media">Медиатека</option>
+            <option value="crashes">Отчёты о сбоях</option>
+            <option value="appdocs">Документы программы</option>
+            <option value="appbox">Контейнер программы</option>
+            <option value="root">Весь диск (после джейлбрейка)</option>
+          </select>
+        </label>
+        <p class="crumb" id="fs-crumb"></p>
+        <div class="toolbar-gap"></div>
+        <button type="button" id="fs-mkdir">Папка</button>
+        <label class="file-btn">Загрузить<input id="fs-upload" type="file" multiple hidden></label>
+      </div>
+      <div class="jumps" id="fs-jumps"></div>
+      <p class="fine" id="fs-scope-note"></p>
+      <div class="file-layout">
+        <div class="table-wrap">
+          <table class="grid">
+            <thead><tr><th>Имя</th><th>Размер</th><th>Изменён</th><th></th></tr></thead>
+            <tbody id="fs-rows"></tbody>
+          </table>
+        </div>
+        <aside class="preview" id="fs-preview"><p class="fine">Выберите файл, чтобы посмотреть его здесь.</p></aside>
+      </div>
+    </section>
+
+    <section id="view-apps" class="sheet" hidden>
+      <label class="drop" id="ipa-drop">
+        <strong>Поставить IPA</strong>
+        <span>Перетащите свой пакет сюда. Экран айпада должен быть разблокирован.</span>
+        <span class="fine" id="ipa-folder"></span>
+        <input id="app-ipa" type="file" accept=".ipa" multiple hidden>
+      </label>
+      <div class="toolbar">
+        <div class="seg" id="app-kind">
+          <button type="button" class="is-on" data-kind="User">Свои</button>
+          <button type="button" data-kind="System">Системные</button>
+        </div>
+        <input id="app-q" type="search" placeholder="Поиск">
+      </div>
+      <div class="app-list" id="app-list"></div>
+    </section>
+
+    <section id="view-log" class="sheet" hidden>
+      <div class="toolbar">
+        <button type="button" id="log-toggle">Слушать</button>
+        <button type="button" id="log-clear">Очистить</button>
+        <input id="log-q" type="search" placeholder="Фильтр строки">
+      </div>
+      <pre id="log-view" class="log"></pre>
+    </section>
+
+    <section id="view-copies" class="sheet" hidden>
+      <div class="two">
+        <article>
+          <h2>Резервная копия</h2>
+          <p class="prose">Копия снимается так же, как её снимает компьютер: фото, настройки, данные программ. Если на айпаде включён код, его нужно ввести на экране.</p>
+          <label>Пароль копии, если шифрование уже включено
+            <input id="bak-pass" type="password" autocomplete="off">
+          </label>
+          <button type="button" id="bak-start">Снять копию</button>
+          <ul class="plain" id="bak-list"></ul>
+        </article>
+        <article>
+          <h2>Архив служб</h2>
+          <p class="prose">Старый file relay отдаёт отдельные куски: заметки, сеть, журналы. Архив — gzip/cpio, его можно разобрать на компьютере.</p>
+          <div class="checks" id="relay-sources"></div>
+          <button type="button" id="relay-go">Собрать архив</button>
+          <ul class="plain" id="relay-files"></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-speed" class="sheet" hidden>
+      <article class="callout">
+        <h2>Для дочери и сына</h2>
+        <p class="prose" id="speed-why">iPad Air, чип A7, 1 ГБ памяти. Лёгкий браузер здесь уже есть: Safari в системе и Pure. Chrome, Яндекс, YouTube и магазины только занимают память. Игры без витрины покупок, которые уже стоят и подходят для 3 и 6 лет, оставлены: Малышарики, Sago Mini, Fiete, пианино, раскраски, пазлы, первые слова.</p>
+        <p class="fine" id="speed-state"></p>
+      </article>
+      <div class="two">
+        <article>
+          <h2>Почистить без джейлбрейка</h2>
+          <p class="prose">Удаляются только кэши программ. Фото, сохранения и документы остаются.</p>
+          <button type="button" id="purge">Почистить кэши</button>
+          <button type="button" id="lighten">Выключить Siri и веб-поиск Spotlight</button>
+          <h3>Что занимает место</h3>
+          <button type="button" id="heavy">Посчитать</button>
+          <ul class="plain" id="heavy-list"></ul>
+        </article>
+        <article>
+          <h2>Джейлбрейк без кабеля</h2>
+          <p class="prose">Полностью непривязанного на iOS 12.5.7 нет: айпад не может включиться уже взломанным, подпись загрузчика проверяется каждый раз. Полунепривязанный есть. Это Chimera 1.6.5: после перезагрузки открываете иконку на самом айпаде, компьютер не нужен. Стоящий сейчас unc0ver 6.1.2 эту сборку iOS уже не берёт.</p>
+          <p class="prose">Chimera ставится как обычный IPA через вкладку «Программы» или через AltStore, он уже на айпаде. Бесплатная подпись живёт 7 дней, AltStore её продлевает. Запасной путь с кабелем — кнопка checkra1n 0.10.1: питание и Home десять секунд, потом только Home до чёрного экрана. На строке Right before trigger выдерните кабель на секунду и сразу воткните.</p>
+          <button type="button" class="hot" id="jb">Запустить checkra1n</button>
+          <p class="fine">Неподписанный .ipa ставится из вкладки «Программы». Без джейлбрейка iOS его отвергнет. После checkra1n откройте loader на айпаде, поставьте Cydia, а из неё — AppSync Unified. Тогда установка .ipa с этой страницы проходит.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-system" class="sheet" hidden>
+      <article class="callout">
+        <h2>Что реально можно сменить</h2>
+        <p class="prose">Медиатека, документы программ, сами программы, профили и резервная копия — да. Системный раздел закрыт: это обычный активированный айпад, не режим с корневым доступом.</p>
+        <p class="prose">Систему можно поставить заново только официальным IPSW, который Apple ещё подписывает. Для iPad Air первого поколения потолок — iOS 12.5.7. Обновление сохраняет данные. Стирающая установка ставит систему с нуля и удаляет всё.</p>
+      </article>
+
+      <div class="two">
+        <article>
+          <h2>Имя и язык</h2>
+          <label>Имя<input id="sys-name" maxlength="64"></label>
+          <button type="button" id="sys-rename">Переименовать</button>
+          <label>Язык<input id="sys-lang" placeholder="ru"></label>
+          <label>Локаль<input id="sys-locale" placeholder="ru_RU"></label>
+          <button type="button" id="sys-locale-go">Записать язык</button>
+          <p class="fine">Язык подхватывается после перезагрузки.</p>
+          <label class="checkline"><input id="sys-wifi" type="checkbox"> Пускать этот компьютер по Wi-Fi, не только по кабелю</label>
+        </article>
+        <article>
+          <h2>Профили</h2>
+          <ul class="plain" id="profile-list"></ul>
+          <label class="file-btn">Поставить профиль<input id="profile-file" type="file" accept=".mobileconfig,.plist" hidden></label>
+          <p class="fine">Айпад спросит подтверждение на экране.</p>
+        </article>
+      </div>
+
+      <article>
+        <h2>Прошивка</h2>
+        <div class="toolbar">
+          <button type="button" id="rec-enter">В recovery</button>
+          <button type="button" id="rec-exit">Выйти из recovery</button>
+        </div>
+        <div class="table-wrap">
+          <table class="grid">
+            <thead><tr><th>Версия</th><th>Сборка</th><th>Подпись</th><th>Размер</th><th></th></tr></thead>
+            <tbody id="fw-rows"></tbody>
+          </table>
+        </div>
+        <h3>Файлы на этом компьютере</h3>
+        <ul class="plain" id="fw-local"></ul>
+        <form id="flash-form" class="stack">
+          <label>Какой IPSW ставить
+            <select id="flash-pick"></select>
+          </label>
+          <label class="checkline"><input id="flash-erase" type="checkbox"> Стереть айпад и поставить систему заново</label>
+          <label>Введите имя устройства, чтобы начать
+            <input id="flash-confirm" autocomplete="off">
+          </label>
+          <button type="submit" class="hot">Начать прошивку</button>
+        </form>
+      </article>
+
+      <article class="danger">
+        <h2>Стереть данные, систему не трогать</h2>
+        <p class="prose">Команда EraseDevice. Фото, программы и настройки исчезнут, iOS останется. Айпад загрузится как после покупки.</p>
+        <form id="erase-form" class="stack">
+          <label>Имя устройства<input id="erase-confirm" autocomplete="off"></label>
+          <button type="submit" class="hot">Стереть</button>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <footer class="jobs" id="jobs" hidden></footer>
+  </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
