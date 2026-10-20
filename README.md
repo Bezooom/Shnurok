@@ -1,151 +1,132 @@
-# 🪢 Шнурок (Shnurok)
+# ШНУРОК — низкоуровневый USB-транспорт и ep0-загрузчик pongoOS для Linux (C / Python)
 
-> **Низкоуровневый USB-транспорт и патч загрузчика pongoOS для надежной работы checkm8 на Linux.**  
-> Устраняет `DFUSyncUpload FAILED: -1`, таймауты дескрипторов (`error -110`), падения A7 SecureROM при сбросе шины и зависания bulk-трансферов на контроллерах ASMedia ASM1142, USB-C хабах и проблемных xHCI хостах.
+> **Серия «Низкий уровень»** — закрытие многолетней аппаратной проблемы BugTracker checkra1n [#1169](https://github.com/checkra1n/bugtracker/issues/1169).
+> Решение сбоев `DFUSyncUpload FAILED: -1`, таймаутов дескрипторов (`error -110`), краха SecureROM при сбросе шины и отказа Bulk-пайпов на чипах Apple A7/A8 под управлением Linux через хост-контроллеры ASMedia ASM1142, USB-C хабы и капризные xHCI-линии.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
-[![Linux](https://img.shields.io/badge/Platform-Linux%20x86__64%20%7C%20aarch64-success.svg)](#)
-[![pongoOS](https://img.shields.io/badge/pongoOS-Fork%20Patch-orange.svg)](https://github.com/checkra1n/PongoOS)
-[![Clean Room](https://img.shields.io/badge/Legal-Zero%20Apple%20Blobs-green.svg)](#-юридическая-чистота-и-лицензирование)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![C](https://img.shields.io/badge/C-C11%20pongoOS%20patch-orange)
+![deps](https://img.shields.io/badge/deps-libusb%20only-informational)
+![self-checks](https://img.shields.io/badge/contract--tests-9%2F9%20PASS-green)
+![clean-room](https://img.shields.io/badge/Legal-Zero%20Apple%20Blobs-brightgreen)
+![license](https://img.shields.io/badge/license-MIT-yellow)
 
----
-
-| Параметр | Значение |
-| :--- | :--- |
-| **Целевые процессоры** | Apple A7 (S5L8960X: iPad Air 1, iPad mini 2, iPad mini 3, iPhone 5s), A8 (S5L8964X/S5L8965X) |
-| **Аппаратная проблема** | BugTracker checkra1n [#1169](https://github.com/checkra1n/bugtracker/issues/1169): зависание bulk OUT endpoint `0x02`, сброс соединения ASM1142 |
-| **Архитектурное решение** | Потоковая передача чанков по ep0 control transfer (`0x21/1`), софт-триггер DFU ABORT |
-| **Статус тестов** | `test_ep0_protocol.py` — **9/9 PASS** |
-| **Лицензия** | MIT (100% чистый код, без закрытых блобов и проприетарных ключей) |
+Самодостаточный комплекс (патч к открытому [checkra1n/PongoOS](https://github.com/checkra1n/PongoOS) на C + хостовый аплоадер на Python/libusb), устраняющий физический отказ Bulk OUT `0x02` после срабатывания `checkm8`: поток данных рамдиска и кастомных ядер перенаправляется в Endpoint 0 (`0x21/1`) с DMA-чанкованием по 4 КБ и программным софт-триггером сброса через DFU ABORT (`bRequest 6`).
 
 ---
 
-## 📌 Ключевые возможности
+## Результаты (полный лог — в [docs/VERIFICATION.md](docs/VERIFICATION.md))
 
-1. **Транспорт чанков через Endpoint 0 (`pongoos-usbloader-ep0.patch`)**:
-   - Патч к открытому загрузчику [checkra1n/PongoOS](https://github.com/checkra1n/PongoOS) (`src/shell/usbloader.c`).
-   - Прием данных рамдиска и кастомных ядер через DFU-запрос `0x21/1` с индексацией пакетов в `wValue`.
-   - Автоматическое секционирование чанков под лимит DMA-буфера (`0x1000` байт).
-   - Поддержка DFU GETSTATUS (`0xA1/3`) с устойчивостью к зависшей стадии IN (`0xC0/0`).
+| Критерий / Проверка | Доказательство | Вердикт |
+|---|---|---|
+| Сборка патча pongoOS под Linux | `clang -nostdlibinc`, `ld64` из `cctools-port`, `Pongo.bin` 644 КБ | PASS |
+| Обход зависшего Bulk OUT `0x02` | Чанки принимаются по ep0 при активном и навечно зависшем bulk-трансфере | PASS |
+| Детерминированный порядок чанков | Индексация `wValue` 1..N, валидация последовательности | PASS |
+| Совместимость с командами pongoOS | Передача stdin-команд через `0x21/3` не конфликтует с чанками | PASS |
+| Дифференциация 4-байтовых пакетов | `wValue > 0` = данные чанка; `wValue == 0` = ресайз буфера (без коллизий) | PASS |
+| Лимит буфера DMA Synopsys OTG | Чанки > `0x1000` (4096 байт) жестко отклоняются со STALL | PASS |
+| Защита от переполнения памяти | Превышение размера буфера выставляет `bStatus = 8` (`errManifest`) | PASS |
+| Устойчивость к stall стадии статуса | Аплоад завершается успешно при неработающей IN-стадии (`0xC0/0`) хоста | PASS |
+| Контрактные тесты протокола | `python3 tools/test_ep0_protocol.py`: 9 из 9 тестов пройдены | PASS |
 
-2. **Софт-сброс через DFU ABORT (Soft Reset)**:
-   - Обход фатального аппаратного бага: отправка `libusb_reset_device()` на многих контроллерах переводит A7 SecureROM в панику и циклическую перезагрузку вместо повторной энумерации.
-   - Использование запроса DFU ABORT (`bRequest 6`), распознаваемого перехваченным обработчиком как шинный сброс.
-
-3. **Автоматический Unbind ядра `apple-mfi-fastcharge`**:
-   - Драйвер ядра Linux `apple-mfi-fastcharge` агрессивно захватывает интерфейс `05ac`, возвращая `EBUSY` при вызове `libusb_claim_interface`.
-   - Встроенные udev-правила и скрипт для автоматического освобождения интерфейса.
-
-4. **Полностью воспроизводимый Linux-билд pongoOS**:
-   - Сборка `cctools-port` (включая `ld64` и `cctools-strip`) и `apple-libdispatch` на чистом Linux без macOS-зависимостей.
-   - Заголовочный шим `compat/stdarg_shim.h` для сборки clang под `-nostdlibinc`.
+Все тесты протокола выполняются за доли секунды через `make test`. Физика замеров хост-контроллеров ASMedia ASM1142 и таймингов SecureROM вынесена в [docs/HARDWARE-POSTMORTEM.md](docs/HARDWARE-POSTMORTEM.md).
 
 ---
 
-## 🔬 Физика проблемы (Hardware Post-Mortem)
+## Мотивация
 
-Годами в сообществе существовал миф: *«checkm8 на чипах A7 принципиально сломан на Linux»*. Физические замеры шины показали две независимые причины:
+Годами в сообществе считалось, что запуск checkm8 на процессорах Apple A7 (iPad Air 1, iPad mini 2, iPhone 5s) на Linux-машинах нестабилен или вовсе невозможен из-за «кривого USB в ядре Linux».
+
+Реальный инженерный разбор показал две физические причины:
+1. **Сброс шины:** контроллеры ASMedia (ASM1142/2142/3142) при аппаратном сбросе порта обесточивают линию дольше допустимого, отчего SecureROM A7 падает в panic и уходит в перезагрузку вместо перехода в `pwned DFU`.
+2. **Отказ Bulk OUT:** после перехвата исполнения SecureROM дескрипторы Bulk OUT теряют синхронизацию с хостом, вызывая бесконечный `DFUSyncUpload FAILED: -1`.
+
+«Шнурок» переносит весь транспорт на Endpoint 0 (Control Transfer), который обслуживается аппаратным блоком Synopsys OTG независимо от состояния Bulk-пайпов, а шинный сброс заменяет на детерминированный `DFU ABORT`.
+
+---
+
+## Архитектура передачи
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant Host as Linux Host (ASM1142 / xHCI)
-    participant ROM as iPad A7 (SecureROM / Pongo)
+flowchart TD
+    subgraph Host[Linux Host: ASM1142 / xHCI]
+        A[Image / Ramdisk.dmg] --> B[tools/ep0_uploader.py]
+        B -->|Chunking <= 4096 bytes| C[libusb Control Transfer: 0x21 / 1]
+        D[tools/linux_usb.py] -->|DFU ABORT: 0x21 / 6| E[Soft Reset Trigger]
+        F[udev / unbind_fastcharge] -->|Release Interface 0| G[Kernel Clean Access]
+    end
 
-    Note over Host,ROM: 1. Стадия сброса (Hardware Reset Bug)
-    Host->>ROM: libusb_reset_device() (физический сброс шины)
-    Note right of ROM: Контроллер ASM1142 искажает тайминг 1-ms reset.<br/>SecureROM падает в panic -> Reboot вместо DFU.
-    Note over Host,ROM: Решение: замена на DFU ABORT (bRequest 6) -> Сохранение pwned-состояния.
-
-    Note over Host,ROM: 2. Стадия загрузки ядра/рамдиска (Bulk Pipe Hang)
-    Host->>ROM: checkra1n пытается лить образ через Bulk OUT (ep 0x02)
-    ROM--xHost: Endpoint 0x02 не отвечает (DFUSyncUpload FAILED: -1)
-    Note over Host,ROM: Решение: «Шнурок» перенаправляет поток в ep0 DATA OUT (0x21/1)
-    Host->>ROM: ep0 Control OUT (пакеты до 4 КБ)
-    ROM->>Host: Успешный прием в loader_xfer_recv_data -> Boot!
+    subgraph Device[iPad Air 1 / Apple A7]
+        C --> H[ep0_upload_chunk]
+        H -->|Direct memcpy + cache_invalidate| I[loader_xfer_recv_data]
+        E --> J[Patched dfu_handle_bus_reset hook]
+        I --> K[PongoOS Shell / Ramdisk Boot]
+        J --> K
+    end
 ```
-
-1. **Неспособность внешних хост-контроллеров корректно выполнить USB Bus Reset:**
-   Контроллеры ASMedia (ASM1142, ASM2142, ASM3142) и ряд USB-C мультиплексоров при программном сбросе порта сбрасывают внутреннее состояние хаба, вызывая ошибку энумерации `-110` (`device descriptor read/64, error -110`). SecureROM на A7 теряет питание/такты и уходит в обычную перезагрузку.
-2. **Отказ Bulk OUT после эксплойта:**
-   После успешного срабатывания checkm8 дескрипторы конфигурации устройства могут рассинхронизироваться с xHCI-драйвером Linux. Запросы на Bulk OUT (`0x02`) молча отбрасываются хостом или зависают с таймаутом. Endpoint 0 (Control transfers) при этом остается полностью работоспособным.
 
 ---
 
-## 📂 Структура репозитория
+## Структура репозитория
 
 ```
 Shnurok/
-├── README.md               # Документация и технический отчет
+├── README.md               # Этот документ
 ├── LICENSE                 # Лицензия MIT
-├── Makefile                # Сборка, запуск тестов, установка правил
+├── Makefile                # make test, make check, make install-rules
+├── .gitignore              # Изоляция локальных артефактов
 ├── patches/
-│   └── pongoos-usbloader-ep0.patch  # Патч загрузчика pongoOS
+│   └── pongoos-usbloader-ep0.patch  # Патч pongoOS (chunked ep0 вместо bulk)
 ├── tools/
-│   ├── ep0_uploader.py     # Хост-скрипт загрузки образов по ep0
-│   ├── linux_usb.py        # Утилиты soft-reset и unbind ядра
-│   └── test_ep0_protocol.py# Модульные тесты протокола (9 тестов)
+│   ├── ep0_uploader.py     # Хост-скрипт стриминга по ep0 control transfer
+│   ├── linux_usb.py        # Утилиты DFU abort (soft-reset) и unbind fastcharge
+│   └── test_ep0_protocol.py# Модульные тесты протокола (9/9 PASS)
 ├── scripts/
-│   ├── build_pongo.sh      # Контейнерный/локальный сборщик pongoOS под Linux
-│   └── unbind_fastcharge.sh# Освобождение интерфейса от драйвера ядра
+│   ├── build_pongo.sh      # Контейнерный/локальный сборщик cctools + pongoOS под Linux
+│   └── unbind_fastcharge.sh# Скрипт отвязки конфликтующего драйвера ядра
 ├── compat/
 │   └── stdarg_shim.h       # Шим для сборки под clang без stdlib
+├── docs/
+│   ├── VERIFICATION.md     # Полный отчет верификации и матрица приёмки
+│   └── HARDWARE-POSTMORTEM.md # Разбор физики USB-контроллеров и таймингов
 └── udev/
-    └── 39-shnurok.rules    # Правила доступа к DFU/Pongo устройствам
+    └── 39-shnurok.rules    # Правила доступа к 05ac:1227 / 05ac:4141 без root
 ```
 
 ---
 
-## 🚀 Быстрый старт
+## Быстрый старт
 
 ### 1. Установка udev-правил
-Разрешает доступ к устройствам в режимах DFU (`05ac:1227`) и Pongo (`05ac:4141`) без root-прав:
+Разрешает доступ к устройствам в режимах DFU (`05ac:1227`) и Pongo (`05ac:4141`) без прав суперпользователя и отключает конфликтный драйвер ядра:
 
 ```bash
 make install-rules
 ```
 
 ### 2. Запуск тестов протокола
-Проверка хостового протокола чанкирования и обработки ошибок:
-
 ```bash
 make test
 ```
-```text
-PASS  data lands while bulk is pending and never completes
-PASS  chunks arrive in order with sequential wValue
-PASS  finalize commands reach the shell
-PASS  resize path not swallowed by chunk handler
-PASS  4-byte chunk with nonzero wValue is data, not resize
-PASS  oversized chunk rejected
-PASS  overflow sets errManifest
-PASS  GETSTATUS readable
-PASS  upload completes when GETSTATUS stalls
-```
 
-### 3. Сборка пропатченного pongoOS
-Скрипт автоматически скачивает `checkra1n/PongoOS`, собирает `cctools-port` (`ld64`), накладывает патч и собирает бинарники:
+### 3. Сборка пропатченного pongoOS под Linux
+Автоматически собирает `cctools-port` (`ld64`), клонирует `checkra1n/PongoOS`, накладывает патч и собирает бинарники:
 
 ```bash
 ./scripts/build_pongo.sh
 ```
-Артефакты сохраняются в `dist/Pongo.bin` и `dist/PongoConsolidated.bin`.
+Готовые образы появятся в каталоге `dist/Pongo.bin` и `dist/PongoConsolidated.bin`.
 
-### 4. Загрузка рамдиска на устройство
-После перевода устройства в режим pongoOS (через `checkra1n -k dist/Pongo.bin` или автономный загрузчик):
-
+### 4. Загрузка рамдиска по ep0
 ```bash
-# Загрузка рамдиска по ep0 control transfer:
 python3 tools/ep0_uploader.py /path/to/ramdisk.dmg
 ```
 
 ---
 
-## ⚖️ Юридическая чистота и лицензирование
+## Юридическая чистота и лицензирование
 
-Проект разработан в режиме **Clean Room** и полностью соблюдает законы об авторском праве:
-- ❌ **Нет закрытых бинарников Apple**: репозиторий не содержит прошивок IPSW, образов iBSS/iBEC, ключей шифрования (GID/UID) или дампов SecureROM.
-- ❌ **Нет закрытого кода checkra1n**: проект не использует закрытый бинарник команды checkra1n.
-- ❌ **Нет пиратского ПО**: в проекте отсутствуют средства обхода подписи пользовательских приложений или модифицированные IPA.
-- ✔️ **100% открытый код (MIT)**: патч создан исключительно для открытого репозитория `checkra1n/PongoOS` (распространяемого по лицензии MIT), а хостовые утилиты написаны с нуля.
+Проект полностью открыт и спроектирован по стандартам **Clean Room Reverse Engineering**:
+- ❌ **Нет закрытых бинарников Apple:** репозиторий не содержит и не распространяет прошивки IPSW, образы iBSS/iBEC/SEP, дампы SecureROM или ключи шифрования (GID/UID).
+- ❌ **Нет закрытого кода checkra1n:** закрытый хостовый бинарник checkra1n и его проприетарные payload'ы не входят в проект.
+- ❌ **Нет пиратского ПО:** отсутствуют средства обхода пользовательских подписей приложений.
+- ✔️ **Чистый MIT:** патч написан исключительно для открытого репозитория `checkra1n/PongoOS` (лицензия MIT), а хостовый стек на Python лицензирован под MIT.
