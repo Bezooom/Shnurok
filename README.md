@@ -1,4 +1,46 @@
-# ШНУРОК (iZOOM) — станция управления, файловый менеджер и реанимация iPad под Linux
+<a id="readme-top"></a>
+<!-- best-readme-template -->
+<div align="center">
+
+<h1 align="center">ШНУРОК (iZOOM) — станция управления, файловый менеджер и реанимация iPad под Linux</h1>
+
+<p align="center">
+  Веб-консоль управления iPad под Linux (файлы AFC, установка IPA, syslog, очистка кэшей) + обход сбоев USB у A7/A8 на капризных xHCI.
+  <br />
+  <br />
+  <a href="https://github.com/Bezooom/Shnurok/tree/HEAD/docs"><strong>Документация »</strong></a> · <a href="https://github.com/Bezooom/Shnurok/issues/new?labels=bug">Сообщить об ошибке</a> · <a href="https://github.com/Bezooom/Shnurok/issues/new?labels=enhancement">Предложить улучшение</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Bezooom/Shnurok/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Bezooom/Shnurok/ci.yml?style=for-the-badge&label=CI&logo=githubactions&logoColor=white" alt="CI" /></a>
+  <a href="https://github.com/Bezooom/Shnurok/blob/HEAD/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
+  <a href="https://github.com/Bezooom/Shnurok/stargazers"><img src="https://img.shields.io/github/stars/Bezooom/Shnurok?style=for-the-badge" alt="Stars" /></a>
+  <a href="https://github.com/Bezooom/Shnurok/commits"><img src="https://img.shields.io/github/last-commit/Bezooom/Shnurok?style=for-the-badge" alt="Last commit" /></a>
+  <a href="https://github.com/Bezooom/Shnurok/issues"><img src="https://img.shields.io/github/issues/Bezooom/Shnurok?style=for-the-badge" alt="Issues" /></a>
+</p>
+
+</div>
+
+<details open>
+<summary><b>📑 Содержание</b></summary>
+
+- [📖 О проекте](#-о-проекте)
+- [🖥️ Графический интерфейс (Веб-консоль iZOOM)](#-графический-интерфейс-веб-консоль-izoom)
+- [🔬 Низкоуровневый драйвер: обход сбоев ASM1142 / A7 (checkm8)](#-низкоуровневый-драйвер-обход-сбоев-asm1142--a7-checkm8)
+- [🏗️ Архитектура комплекса](#-архитектура-комплекса)
+- [📂 Структура репозитория](#-структура-репозитория)
+- [🧱 Технологии (Built With)](#-технологии-built-with)
+- [🚀 Быстрый старт](#-быстрый-старт)
+- [🗺️ Дорожная карта](#-дорожная-карта)
+- [🤝 Участие в разработке](#-участие-в-разработке)
+- [⚖️ Юридическая чистота и лицензирование](#-юридическая-чистота-и-лицензирование)
+- [🌍 English summary](#-english-summary)
+- [📬 Контакты](#-контакты)
+- [🙏 Благодарности](#-благодарности)
+
+</details>
+
+## 📖 О проекте
 
 > **Полноценная локальная веб-консоль для работы с iOS-устройствами на Linux + низкоуровневый USB-транспорт.**  
 > Предоставляет графический интерфейс управления айпадом (паспорт, батарея, файловый менеджер AFC, установка IPA, стриминг syslog, очистка кэшей) + обход зависания bulk-трансферов через ep0 (BugTracker checkra1n [#1169](https://github.com/checkra1n/bugtracker/issues/1169), контрактные тесты 9/9 PASS, гоняются в CI) на чипах Apple A7/A8 при подключении через капризные xHCI, ASMedia ASM1142 и USB-C хабы.
@@ -109,6 +151,16 @@ Shnurok/
 
 ---
 
+## 🧱 Технологии (Built With)
+
+<p>
+<img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+<img src="https://img.shields.io/badge/FastAPI-0.115%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+<img src="https://img.shields.io/badge/pymobiledevice3--000000?style=for-the-badge&logo=apple&logoColor=white" alt="pymobiledevice3" />
+<img src="https://img.shields.io/badge/libusb--4B8BBE?style=for-the-badge" alt="libusb" />
+<img src="https://img.shields.io/badge/udev-rules-FCC624?style=for-the-badge&logo=linux&logoColor=white" alt="udev" />
+</p>
+
 ## 🚀 Быстрый старт
 
 ### 1. Установка зависимостей и правил udev
@@ -143,6 +195,23 @@ PASS  upload completes when GETSTATUS stalls
 
 ---
 
+## 🗺️ Дорожная карта
+
+- [ ] Первый релиз
+- [ ] Скриншот веб-консоли в README
+
+Полный список задач и идей — в [issues](https://github.com/Bezooom/Shnurok/issues).
+
+## 🤝 Участие в разработке
+
+Вклад в проект приветствуется. Если есть идея, как сделать лучше, откройте issue или pull request:
+
+1. Сделайте форк репозитория
+2. Создайте ветку (`git checkout -b feature/my-idea`)
+3. Сделайте коммит (`git commit -m 'feat: my idea'`)
+4. Отправьте ветку (`git push origin feature/my-idea`)
+5. Откройте pull request
+
 ## ⚖️ Юридическая чистота и лицензирование
 
 Проект полностью открыт, автономен и спроектирован по стандартам **Clean Room Reverse Engineering**:
@@ -150,3 +219,23 @@ PASS  upload completes when GETSTATUS stalls
 - ❌ **Нет закрытого кода checkra1n:** закрытый хостовый бинарник и закрытые пейлоады не используются.
 - ❌ **Нет пиратского контента:** в репозитории нет взломанных приложений или средств обхода DRM.
 - ✔️ **Чистый MIT:** вся кодовая база консоли и утилит написана с нуля и распространяется под лицензией MIT. Патч предназначен исключительно для открытого загрузчика `checkra1n/PongoOS` (MIT).
+
+## 🌍 English summary
+
+Local web console for iPad on Linux (device info, AFC file manager, IPA install, live syslog, backups, cache cleanup) built on pymobiledevice3 and FastAPI, plus a low-level USB workaround for Apple A7/A8 devices on ASMedia ASM1142 and other xHCI hosts: ramdisk upload over endpoint 0, DFU_ABORT soft reset instead of a port reset, and udev unbinding of apple-mfi-fastcharge. Protocol contract tests run in GitHub Actions.
+
+## 📬 Контакты
+
+**Павел Наумов** (Bezooom) — [naumovai.ru](https://naumovai.ru) · [X @Bezooooom](https://x.com/Bezooooom) · naumov122@gmail.com
+
+Проект: [https://github.com/Bezooom/Shnurok](https://github.com/Bezooom/Shnurok)
+
+## 🙏 Благодарности
+
+- [pymobiledevice3](https://github.com/doronz88/pymobiledevice3)
+- [checkra1n](https://checkra.in) и [pongoOS](https://github.com/checkra1n/PongoOS)
+- [libusb](https://libusb.info)
+- [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
+- [Shields.io](https://shields.io)
+
+<p align="right">(<a href="#readme-top">наверх</a>)</p>
