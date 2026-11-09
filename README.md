@@ -1,14 +1,15 @@
 # ШНУРОК (iZOOM) — станция управления, файловый менеджер и реанимация iPad под Linux
 
 > **Полноценная локальная веб-консоль для работы с iOS-устройствами на Linux + низкоуровневый USB-транспорт.**  
-> Предоставляет графический интерфейс управления айпадом (паспорт, батарея, файловый менеджер AFC, установка IPA, стриминг syslog, очистка кэшей) + обход зависания bulk-трансферов через ep0 (BugTracker checkra1n [#1169](https://github.com/checkra1n/bugtracker/issues/1169), контрактные тесты 9/9 PASS) на чипах Apple A7/A8 при подключении через капризные xHCI, ASMedia ASM1142 и USB-C хабы.
+> Предоставляет графический интерфейс управления айпадом (паспорт, батарея, файловый менеджер AFC, установка IPA, стриминг syslog, очистка кэшей) + обход зависания bulk-трансферов через ep0 (BugTracker checkra1n [#1169](https://github.com/checkra1n/bugtracker/issues/1169), контрактные тесты протокола гоняются в CI) на чипах Apple A7/A8 при подключении через капризные xHCI, ASMedia ASM1142 и USB-C хабы.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688)
 ![GUI](https://img.shields.io/badge/GUI-Web%20Console-purple)
 ![Linux](https://img.shields.io/badge/Platform-Linux%20x86__64%20%7C%20aarch64-success.svg)
 ![clean-room](https://img.shields.io/badge/Legal-Zero%20Apple%20Blobs-brightgreen)
-![license](https://img.shields.io/badge/license-MIT-yellow)
+[![CI](https://github.com/Bezooom/Shnurok/actions/workflows/ci.yml/badge.svg)](https://github.com/Bezooom/Shnurok/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
 ---
 
